@@ -32,8 +32,11 @@ pipeline {
         }
 
     }
-    stage('Archive Artifacts') { steps { archiveArtifacts artifacts: '.next/**', fingerprint: true } }
-
+    stage('Archive Artifacts') {
+        steps {
+            archiveArtifacts artifacts: '.next/**', fingerprint: true
+        }
+    }
     post {
         always {
             echo 'Pipeline Finished'
