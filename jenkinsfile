@@ -39,16 +39,29 @@ pipeline {
     }
 
     post {
-        always {
-            echo 'Pipeline Finished'
-        }
 
-        success {
-            echo 'Build Successful'
-        }
-
-        failure {
-            echo 'Build Failed'
-        }
+    always {
+        echo 'Pipeline Finished'
     }
+
+    success {
+        echo 'Build Successful'
+
+        slackSend(
+            channel: '#jenkins',
+            color: 'good',
+            message: "✅ ${env.JOB_NAME} Build #${env.BUILD_NUMBER} Successful"
+        )
+    }
+
+    failure {
+        echo 'Build Failed'
+
+        slackSend(
+            channel: '#jenkins',
+            color: 'danger',
+            message: "❌ ${env.JOB_NAME} Build #${env.BUILD_NUMBER} Failed"
+        )
+    }
+}
 }
