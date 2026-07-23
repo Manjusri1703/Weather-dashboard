@@ -31,12 +31,6 @@ pipeline {
             }
         }
 
-        stage('Deploy') {
-            steps {
-                bat 'npm run start'
-            }
-        }
-
     }
 
     post {
