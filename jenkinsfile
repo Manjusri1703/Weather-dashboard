@@ -19,11 +19,43 @@ pipeline {
             }
         }
 
+        stage('Lint') {
+            steps {
+                bat 'npm run lint'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                bat 'npm test'
+            }
+        }
+
         stage('Build') {
             steps {
                 bat 'npm run build'
             }
         }
 
+        stage('Deploy') {
+            steps {
+                bat 'npm run start'
+            }
+        }
+
+    }
+
+    post {
+        always {
+            echo 'Pipeline Finished'
+        }
+
+        success {
+            echo 'Build Successful'
+        }
+
+        failure {
+            echo 'Build Failed'
+        }
     }
 }
