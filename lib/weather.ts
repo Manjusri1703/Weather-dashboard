@@ -13,10 +13,13 @@ const BASE_URL = "https://api.openweathermap.org/data/2.5";
  * Helper to check whether a valid OpenWeatherMap API key is set
  */
 export function hasValidApiKey(): boolean {
+  if (typeof API_KEY !== "string") return false;
+  const key = API_KEY.trim();
   return (
-    typeof API_KEY === "string" &&
-    API_KEY.trim() !== "" &&
-    API_KEY !== "YOUR_API_KEY"
+    key !== "" &&
+    key !== "YOUR_API_KEY" &&
+    key !== "undefined" &&
+    key !== "null"
   );
 }
 
@@ -55,6 +58,23 @@ function getFormattedDate(timestamp: number, timezoneOffset: number): string {
 }
 
 /**
+ * Helper to safely fetch and parse JSON responses, preventing unhandled "Unexpected end of JSON input" errors.
+ */
+async function parseResponseJson<T>(res: Response): Promise<T> {
+  const text = await res.text();
+  
+  if (!text || !text.trim()) {
+    throw new Error("Received empty response payload from weather service.");
+  }
+
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new Error("Failed to parse weather API response. Invalid JSON returned.");
+  }
+}
+
+/**
  * Fetch Current Weather by City Name
  */
 export async function getCurrentWeather(city: string): Promise<CurrentWeather> {
@@ -73,7 +93,7 @@ export async function getCurrentWeather(city: string): Promise<CurrentWeather> {
   )}&appid=${API_KEY}&units=metric`;
 
   try {
-    const res = await fetch(url, { next: { revalidate: 300 } });
+    const res = await fetch(url);
 
     if (!res.ok) {
       if (res.status === 404) {
@@ -85,7 +105,7 @@ export async function getCurrentWeather(city: string): Promise<CurrentWeather> {
       throw new Error(`Failed to fetch weather data (Status ${res.status}).`);
     }
 
-    const data: OpenWeatherCurrentResponse = await res.json();
+    const data: OpenWeatherCurrentResponse = await parseResponseJson<OpenWeatherCurrentResponse>(res);
 
     const currentWeather: CurrentWeather = {
       city: data.name,
@@ -136,16 +156,19 @@ export async function get5DayForecast(city: string): Promise<ForecastItem[]> {
   )}&appid=${API_KEY}&units=metric`;
 
   try {
-    const res = await fetch(url, { next: { revalidate: 300 } });
+    const res = await fetch(url);
 
     if (!res.ok) {
       if (res.status === 404) {
         throw new Error(`City "${cleanCity}" not found.`);
       }
+      if (res.status === 401) {
+        throw new Error("Invalid OpenWeatherMap API key. Please check your NEXT_PUBLIC_WEATHER_API_KEY environment variable.");
+      }
       throw new Error(`Failed to fetch forecast data (Status ${res.status}).`);
     }
 
-    const data: OpenWeatherForecastResponse = await res.json();
+    const data: OpenWeatherForecastResponse = await parseResponseJson<OpenWeatherForecastResponse>(res);
     const timezone = data.city.timezone;
 
     // Group 3-hour forecast entries by YYYY-MM-DD
